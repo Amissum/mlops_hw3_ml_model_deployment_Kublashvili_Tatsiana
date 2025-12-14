@@ -14,6 +14,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    # Permission to push to GitHub Container Registry
+    permissions:
+      packages: write
+      contents: read
+
     env:
       MODEL_VERSION: ${{ secrets.MODEL_VERSION }}
       CLOUD_TOKEN:  ${{ secrets.CLOUD_TOKEN }}
