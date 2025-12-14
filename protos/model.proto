@@ -1,0 +1,29 @@
+syntax = "proto3";
+package mlservice.v1;
+
+service PredictionService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc Predict(PredictRequest) returns (PredictResponse);
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;         // "ok"
+  string model_version = 2;  // e.g. "v1.0.3"
+}
+
+message Feature {
+  string name = 1;
+  double value = 2;
+}
+
+message PredictRequest {
+  repeated Feature features = 1;  // [{name:"sepal_length", value:5.1}, ...]
+}
+
+message PredictResponse {
+  string prediction = 1;          // "setosa"
+  double confidence = 2;          // 0.93 (опционально)
+  string model_version = 3;
+}
