@@ -53,13 +53,18 @@ jobs:
           ./build_model_versions.sh
 
       # Push image to registry ghcr.io
+      - name: Prepare lowercase repo name for GHCR
+        run: |
+          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "REPO_LC=$REPO_LC" >> $GITHUB_ENV
+
       - name: Push Docker images to ghcr.io
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker tag ml-hw3-grpc-service:v1.0.0 ghcr.io/${{ github.repository }}/ml-hw3-grpc-service:v1.0.0
-          docker tag ml-hw3-grpc-service:v2.0.0 ghcr.io/${{ github.repository }}/ml-hw3-grpc-service:v2.0.0
-          docker push ghcr.io/${{ github.repository }}/ml-hw3-grpc-service:v1.0.0
-          docker push ghcr.io/${{ github.repository }}/ml-hw3-grpc-service:v2.0.0
+          docker tag ml-hw3-grpc-service:v1.0.0 ghcr.io/$REPO_LC/ml-hw3-grpc-service:v1.0.0
+          docker tag ml-hw3-grpc-service:v2.0.0 ghcr.io/$REPO_LC/ml-hw3-grpc-service:v2.0.0
+          docker push ghcr.io/$REPO_LC/ml-hw3-grpc-service:v1.0.0
+          docker push ghcr.io/$REPO_LC/ml-hw3-grpc-service:v2.0.0
 
       - name: Start services with docker compose
         run: |
