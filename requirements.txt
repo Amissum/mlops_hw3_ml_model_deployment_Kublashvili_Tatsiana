@@ -2,6 +2,7 @@ fastapi==0.124.4
 uvicorn==0.38.0
 pydantic==2.12.5
 grpcio==1.66.1
+prometheus_client==0.23.1
 grpcio-tools==1.66.1
 grpcio-reflection==1.66.1
 pandas

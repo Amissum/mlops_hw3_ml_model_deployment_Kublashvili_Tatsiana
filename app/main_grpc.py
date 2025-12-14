@@ -12,7 +12,11 @@ def health():
 
 @api.on_event("startup")
 def startup_event():
-    server = grpc_server.serve()
+    grpc_server.serve()
+
+@api.on_event("shutdown")
+def shutdown_event():
+    pass  # Add any necessary cleanup here
 
 @api.get("/predict", response_model=dict, request_model=dict)
 def predict(request_data: dict):
