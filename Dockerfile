@@ -1,20 +1,36 @@
-# Базовый образ
 FROM python:3.11-slim
 
-# Переменные окружения
-ENV MODEL_PATH=/app/models/model.pkl \
-    PORT=8080
+# Non-interactive mode for apt
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Рабочая директория
+# Working directory inside container
 WORKDIR /app
 
-# Копирование зависимостей и установка
-COPY requirements.txt .
+# Install system dependencies (if needed for numpy/sklearn etc.)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# First copy only dependencies to cache pip install layer
+COPY requirements.txt ./requirements.txt
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем весь проект
+# Now copy the entire application
 COPY . .
 
-# Открываем порт для FastAPI
-EXPOSE 8080
-CMD ["uvicorn", "app.main:api", "--host", "0.0.0.0", "--port", "8080"]
+# Generate gRPC code infrastructure from .proto files
+RUN python -m grpc_tools.protoc \
+    --proto_path=./protos \
+    --python_out=. \
+    --grpc_python_out=. \
+    model.proto \
+    health.proto
+
+# gRPC server port
+EXPOSE 50051
+
+# By default start the server
+CMD ["python", "-m", "server.server"]

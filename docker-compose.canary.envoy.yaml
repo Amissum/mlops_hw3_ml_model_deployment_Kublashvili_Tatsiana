@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  envoy:
+    image: envoyproxy/envoy:v1.28-latest
+    container_name: ml-hw3-envoy
+    ports:
+      - "50051:50051"
+      - "9901:9901"  # For admin interactions (for example: localhost:9901/clusters)
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
+    command: ["-c", "/etc/envoy/envoy.yaml"]
+    depends_on:
+      - ml-hw3-grpc-server-v1
+      - ml-hw3-grpc-server-v2
+    networks:
+      - ml-hw3-network
+
+  ml-hw3-grpc-server-v1:
+    image: ml-hw3-grpc-service:v1.0.0
+    environment:
+      MODEL_PATH: "/app/models/model.pkl"
+      MODEL_VERSION: "v1.0.0"
+      PORT: "50051"
+    volumes:
+      - ./models:/app/models
+    networks:
+      - ml-hw3-network
+
+  ml-hw3-grpc-server-v2:
+    image: ml-hw3-grpc-service:v2.0.0
+    environment:
+      MODEL_PATH: "/app/models/model_v2.pkl"
+      MODEL_VERSION: "v2.0.0"
+      PORT: "50051"
+    volumes:
+      - ./models:/app/models
+    networks:
+      - ml-hw3-network
+
+networks:
+  ml-hw3-network:
+    driver: bridge

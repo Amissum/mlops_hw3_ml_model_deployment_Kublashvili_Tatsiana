@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  ml-hw3-grpc-server:
+    build: .
+    container_name: ml-hw3-grpc-server
+    ports:
+      - "50051:50051"
+    environment:
+      MODEL_PATH: "/app/models/model.pkl"
+      MODEL_VERSION: "v1.0.0"
+      PORT: "50051"
+    volumes:
+      - ./models:/app/models
+    stdin_open: true
+    tty: true
+    healthcheck:
+      # Check if port 50051 is listening
+      test: ["CMD-SHELL", "python -c 'import socket; s=socket.socket(); s.settimeout(2); s.connect((\"localhost\", 50051)); s.close()' || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  ml-hw3-grpc-client:
+    build: .
+    container_name: ml-hw3-grpc-client
+    depends_on:
+      ml-hw3-grpc-server:
+        condition: service_healthy  # Wait for server health check to pass
+    restart: "no"
+    environment:
+      GRPC_SERVER: "ml-hw3-grpc-server:50051"
+    command: ["python", "-m", "client.client"]
+    stdin_open: true
+    tty: true

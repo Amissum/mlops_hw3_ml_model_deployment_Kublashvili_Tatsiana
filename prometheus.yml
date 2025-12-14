@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'ml-service-v1'
+    static_configs:
+      - targets: ['ml-hw3-grpc-server-v1:8000']
+        labels:
+          version: 'v1.0.0'
+
+  - job_name: 'ml-service-v2'
+    static_configs:
+      - targets: ['ml-hw3-grpc-server-v2:8000']
+        labels:
+          version: 'v2.0.0'

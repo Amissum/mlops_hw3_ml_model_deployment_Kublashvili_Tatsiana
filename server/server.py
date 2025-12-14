@@ -3,10 +3,11 @@ import grpc
 import os
 from concurrent import futures
 from grpc_reflection.v1alpha import reflection
-import model_pb2, model_pb2_grpc, health_pb2, health_pb2_grpc, grpc_health.v1.health as health
-from validation import features_to_dict, ValidationError
-from inference import ModelRunner
-import logger as _logger
+import model_pb2, model_pb2_grpc
+from grpc_health.v1 import health as health_rpc, health_pb2, health_pb2_grpc
+from server.validation import features_to_dict, ValidationError
+from server.inference import ModelRunner
+import server.logger as _logger
 from prometheus_client import Counter, Histogram, start_http_server
 import time
 
@@ -89,7 +90,7 @@ def serve():
     reflection.enable_server_reflection(SERVICE_NAMES, server)
     server.add_insecure_port(f"[::]:{PORT}")
 
-    health_servicer = health.HealthServicer()
+    health_servicer = health_rpc.HealthServicer()
     health_servicer.set('', health_pb2.HealthCheckResponse.SERVING)
     health_servicer.set('mlservice.v1.PredictionService',
                         health_pb2.HealthCheckResponse.SERVING)
