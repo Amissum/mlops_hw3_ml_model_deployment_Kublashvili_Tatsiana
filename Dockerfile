@@ -2,9 +2,8 @@
 FROM python:3.11-slim
 
 # Переменные окружения
-ENV PORT=50051 \
-    MODEL_PATH=/app/models/model.pkl \
-    MODEL_VERSION=v1.0.0
+ENV MODEL_PATH=/app/models/model.pkl \
+    PORT=8080
 
 # Рабочая директория
 WORKDIR /app
