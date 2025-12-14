@@ -1,26 +1,88 @@
-name: Deploy Model to Cloud
+name: Deploy Canary ML Service for HW3 bases on Envoy balancer and Docker Compose
 
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: 'Canary traffic split stage (10|50|100|rollback)'
+        required: true
+        default: '10'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    env:
+      MODEL_VERSION: ${{ secrets.MODEL_VERSION }}
+      CLOUD_TOKEN:  ${{ secrets.CLOUD_TOKEN }}
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: docker build -t ghcr.io/${{ github.repository }}:${{ github.sha }} .
-
-      - name: Push image to registry
+      - name: Show model version and token (masked)
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker push ghcr.io/${{ github.repository }}:${{ github.sha }}
+          echo "Deploying MODEL_VERSION=${MODEL_VERSION}"
+          echo "CLOUD_TOKEN is set? $([ -n "$CLOUD_TOKEN" ] && echo yes || echo no)"
 
-      - name: Deploy to Cloud
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
         run: |
-          curl -X POST https://api.cloudprovider/deploy \
-            -H "Authorization: Bearer ${{ secrets.CLOUD_TOKEN }}" \
-            -d "image=ghcr.io/${{ github.repository }}:${{ github.sha }}"
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate protobuf files for testing
+        run: |
+          touch protos/__init__.py
+          python -m grpc_tools.protoc \
+            --proto_path=./protos \
+            --python_out=./ \
+            --grpc_python_out=./ \
+            ./protos/model.proto \
+            ./protos/health.proto
+
+      - name: Build Docker images
+        run: |
+          chmod +x build_model_versions.sh
+          ./build_model_versions.sh
+
+      # Push image to registry ghcr.io
+      - name: Push Docker images to ghcr.io
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker tag ml-hw3-grpc-service:v1.0.0 ghcr.io/${{ github.repository }}/ml-hw3-grpc-service:v1.0.0
+          docker tag ml-hw3-grpc-service:v2.0.0 ghcr.io/${{ github.repository }}/ml-hw3-grpc-service:v2.0.0
+          docker push ghcr.io/${{ github.repository }}/ml-hw3-grpc-service:v1.0.0
+          docker push ghcr.io/${{ github.repository }}/ml-hw3-grpc-service:v2.0.0
+
+      - name: Start services with docker compose
+        run: |
+          docker compose -f docker-compose.canary.envoy.yaml up -d
+          docker ps
+
+      - name: Run canary deploy script
+        run: |
+          chmod +x canary_deploy.sh
+          STAGE="${{ github.event.inputs.stage || '10' }}"
+          echo "Running canary_deploy.sh with stage=$STAGE"
+          ./canary_deploy.sh "$STAGE"
+
+      - name: Apply Envoy config
+        run: |
+          sleep 10
+          curl -s http://localhost:9901/clusters || true
+
+      - name: Run canary deployment strategy test
+        run: |
+          python test_canary_deployment_strategy.py
+
+      - name: Stop services
+        if: always()
+        run: |
+          docker compose -f docker-compose.canary.envoy.yaml down
