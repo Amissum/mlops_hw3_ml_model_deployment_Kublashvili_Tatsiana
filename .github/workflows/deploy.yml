@@ -1,0 +1,26 @@
+name: Deploy Model to Cloud
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t ghcr.io/${{ github.repository }}:${{ github.sha }} .
+
+      - name: Push image to registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker push ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+      - name: Deploy to Cloud
+        run: |
+          curl -X POST https://api.cloudprovider/deploy \
+            -H "Authorization: Bearer ${{ secrets.CLOUD_TOKEN }}" \
+            -d "image=ghcr.io/${{ github.repository }}:${{ github.sha }}"
