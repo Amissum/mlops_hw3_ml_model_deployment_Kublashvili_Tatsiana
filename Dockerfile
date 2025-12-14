@@ -16,8 +16,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копируем весь проект
 COPY . .
 
-# Открываем порт
-EXPOSE 50051
-
-# Точка входа
-CMD ["python", "-m", "server.server"]
+# Открываем порт для FastAPI
+EXPOSE 8080
+CMD ["uvicorn", "app.main:api", "--host", "0.0.0.0", "--port", "8080"]
