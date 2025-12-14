@@ -5,6 +5,7 @@ grpcio==1.66.1
 prometheus_client==0.23.1
 grpcio-tools==1.66.1
 grpcio-reflection==1.66.1
+grpcio-health-checking==1.66.1
 pandas
 scikit-learn==1.7.2
 joblib
